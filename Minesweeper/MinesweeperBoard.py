@@ -15,11 +15,13 @@ Last Modified: September 19, 2025
 import random
 
 class Minesweeper:
-    def __init__(self, width, height, num_mines):
+    def __init__(self, width, height, num_mines, mode, difficulty):
         """Take a width, height, and mine number to create a Minesweeper game board."""
         self.width = width
         self.height = height
         self.num_mines = num_mines
+        self.mode = mode
+        self.difficulty = difficulty
         self.flags_remaining = num_mines
         self.board = [[0 for _ in range(width)] for _ in range(height)]
         self.revealed = [[False for _ in range(width)] for _ in range(height)]
@@ -83,7 +85,7 @@ class Minesweeper:
                 for j in range(-1, 2):
                     if 0 <= x + i < self.width and 0 <= y + j < self.height:
                         self.reveal_square(x + i, y + j)
-                        
+
         return True
 
     def toggle_flag(self, x, y):

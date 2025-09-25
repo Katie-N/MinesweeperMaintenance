@@ -83,9 +83,9 @@ class Game:
         self.end_time = None     # Frozen final time
         pg.init()
 
-    def start_game(self, width: int, height: int, num_mines: int):
+    def start_game(self, width: int, height: int, num_mines: int, mode: str, difficulty: str):
         """Start a new minesweeper board with given width, height, and num_mines."""
-        self.minesweeper = Minesweeper(width, height, num_mines)
+        self.minesweeper = Minesweeper(width, height, num_mines, mode, difficulty)
         self.start_ticks = pg.time.get_ticks()  # milliseconds since pg.init()
         self.end_time = None
 
@@ -283,10 +283,12 @@ class Game:
                     if (new_w, new_h) != (cur_w, cur_h):
                         screen = pg.display.set_mode((new_w, new_h), pg.RESIZABLE)
                 elif event.type == pg.KEYDOWN and event.key == pg.K_RETURN: # Return/enter key
-                    # Start game if mine count provided and within 10-20 range
-                    if (mines_input.value and 10 <= int(mines_input.value) <= 20):
-                        num_mines = int(mines_input.value)
-                        self.start_game(BOARD_WIDTH, BOARD_HEIGHT, num_mines)
+                    # Start game if mine count provided, mine count is within 10-20 range
+                    # Maintenance Note: added check to ensure that the mode and difficulty are selected before starting the game
+                    if (mines_input.value and 10 <= int(mines_input.value) <= 20 and mode in ["Auto", "Interactive", "Solo"]):
+                        if ((mode == "Interactive" or mode == "Auto") and difficulty in ["Easy", "Medium", "Hard"]) or (mode == "Solo"):
+                            num_mines = int(mines_input.value)
+                            self.start_game(BOARD_WIDTH, BOARD_HEIGHT, num_mines, mode, difficulty)
                 elif auto_button.handle_event(event):
                     mode = "Auto"
                     print("Auto was selected")
