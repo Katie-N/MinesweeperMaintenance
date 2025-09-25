@@ -54,7 +54,7 @@ class Button:
         self.color = color
         self.hover_color = hover_color
         self.text_color = text_color
-        self.font = pg.font.Font(None, 30) # You can load a custom font here
+        self.font = pg.font.Font(FONT_PATH, 20) # You can load a custom font here
 
     def draw(self, surface):
         # Change color on hover
@@ -221,8 +221,44 @@ class Game:
             # Make sure the buttons are defined here, not just drawn, so events can be handled.
             auto_button, interactive_button, solo_button = drawModeButtons(mode)
 
-            # Create buttons for each difficulty
+            # Create buttons for each difficulty (Easy/Medium/Hard)
+            # The row of buttons should be underneath the rest of the text
+            row_of_difficulties_y = row_of_modes_y + h*0.1 
+
+            def drawDifficultyButtons(selected_difficulty = None):
+                current_button_color = button_color
+                if selected_difficulty == "Easy":
+                    # Color it with the hover color because it is selected
+                    current_button_color = button_hover_color
+                easy_button = Button(0, row_of_difficulties_y, int(w//3), 50, "Easy", current_button_color, button_hover_color, text_color)
+                # Reset to original color
+                current_button_color = button_color
+
+                if selected_difficulty == "Medium":
+                    # Color it with the hover color because it is selected
+                    current_button_color = button_hover_color
+                medium_button = Button(int(w//3), row_of_difficulties_y, int(w//3), 50, "Medium", current_button_color, button_hover_color, text_color)
+                # Reset to original color
+                current_button_color = button_color
+
+                if selected_difficulty == "Hard":
+                    # Color it with the hover color because it is selected
+                    current_button_color = button_hover_color
+                hard_button = Button(2 * int(w//3), row_of_difficulties_y, int(w//3), 50, "Hard", current_button_color, button_hover_color, text_color)
+
+                easy_button.draw(screen) # Draw the button
+                medium_button.draw(screen) # Draw the button
+                hard_button.draw(screen) # Draw the button
+
+                # Return callbacks to the buttons so their events can be handled
+                return easy_button, medium_button, hard_button 
             
+            # Only draw the difficulty buttons if AI will be playing (which is only when on Interactive or Auto mode)
+            if mode == "Interactive" or mode == "Auto":
+                # Make sure the buttons are defined here, not just drawn, so events can be handled.
+                easy_button, medium_button, hard_button = drawDifficultyButtons(difficulty)
+            else:
+                easy_button = medium_button = hard_button = None
 
             # Updates mine and render mine-count input field
             events = pg.event.get()
@@ -263,6 +299,18 @@ class Game:
                     mode = "Solo"
                     print("Solo was selected")
                     drawModeButtons("Solo")
+                elif (mode == "Interactive" or mode == "Auto") and easy_button.handle_event(event):
+                    difficulty = "Easy"
+                    print("Easy was selected")
+                    drawModeButtons("Easy")
+                elif (mode == "Interactive" or mode == "Auto") and medium_button.handle_event(event):
+                    difficulty = "Medium"
+                    print("Medium was selected")
+                    drawModeButtons("Medium")
+                elif (mode == "Interactive" or mode == "Auto") and hard_button.handle_event(event):
+                    difficulty = "Hard"
+                    print("Hard was selected")
+                    drawModeButtons("Hard")
 
             # Custom cursor
             if self.cursor_img is not None:
