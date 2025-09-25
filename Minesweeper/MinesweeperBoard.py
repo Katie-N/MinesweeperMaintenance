@@ -7,6 +7,7 @@ Inputs: Width, height, and number of mines defining the initial board setup.
 Outputs: Minesweeper game board.
 External Sources: None
 Authors: Kiara [Sam] Grimsley, Reeny Huang, Lauren D'Souza, Audrey Pan, Ella Nguyen, Hart Nurnberg
+Maintainers: Katie Nordberg, Kundana Dongala, Vivian Lara, Christina Sorensen, and Navya Nittala
 Created: September 19, 2025 (original prototype August 25, 2025)
 Last Modified: September 19, 2025
 """
@@ -60,7 +61,7 @@ class Minesweeper:
     def reveal_square(self, x, y):
         """Reveal a square on the board. If 0 square, reveal adjacent squares."""
         if self.revealed[y][x] or self.flags[y][x] or self.game_over:
-            return
+            return False
 
         # Place mines after first click, ensuring the first square is safe
         if not self.mines_placed:
@@ -74,7 +75,7 @@ class Minesweeper:
         if self.board[y][x] == -1:
             self.reveal_all_mines()
             self.game_over = True
-            return
+            return False
 
         # If the square is empty (0), reveal adjacent squares
         if self.board[y][x] == 0:
@@ -82,6 +83,8 @@ class Minesweeper:
                 for j in range(-1, 2):
                     if 0 <= x + i < self.width and 0 <= y + j < self.height:
                         self.reveal_square(x + i, y + j)
+                        
+        return True
 
     def toggle_flag(self, x, y):
         """Toggle a flag on a square if flaggable."""

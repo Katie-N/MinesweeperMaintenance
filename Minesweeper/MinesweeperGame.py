@@ -7,6 +7,7 @@ Inputs: User interaction via GUI.
 Outputs: Game window with interactive Minesweeper board.
 External Sources: None
 Authors: Kiara [Sam] Grimsley, Reeny Huang, Lauren D'Souza, Audrey Pan, Ella Nguyen, Hart Nurnberg
+Maintainers: Katie Nordberg, Kundana Dongala, Vivian Lara, Christina Sorensen, and Navya Nittala
 Created: September 19, 2025 (original prototype August 25, 2025)
 Last Modified: September 19, 2025
 """
@@ -43,6 +44,35 @@ TITLE_TEXT = (240, 228, 220)
 GENERAL_TEXT = (176, 196, 177)
 TRANSPARENT_RED = (255, 155, 155, 180)
 TRANSPARENT_GREEN = (155, 255, 155, 200)
+
+# Maintenance Note: Added Button class for mode selection and difficulty selection buttons
+# This class makes a button in pygame that will automatically trigger an event if it is clicked on, and will change colors when hovered over.
+class Button:
+    def __init__(self, x, y, width, height, text, color, hover_color, text_color):
+        self.rect = pg.Rect(x, y, width, height)
+        self.text = text
+        self.color = color
+        self.hover_color = hover_color
+        self.text_color = text_color
+        self.font = pg.font.Font(None, 30) # You can load a custom font here
+
+    def draw(self, surface):
+        # Change color on hover
+        if self.rect.collidepoint(pg.mouse.get_pos()):
+            pg.draw.rect(surface, self.hover_color, self.rect)
+        else:
+            pg.draw.rect(surface, self.color, self.rect)
+
+        # Render text
+        text_surface = self.font.render(self.text, True, self.text_color)
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        surface.blit(text_surface, text_rect)
+
+    def handle_event(self, event):
+        if event.type == pg.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                return True # Button was clicked
+        return False
 
 class Game:
     def __init__(self):
@@ -124,7 +154,9 @@ class Game:
                                                     font_color=WHITE,
                                                     cursor_color=WHITE
                                                     )
-
+        mode = None  # Game mode selected by player. Either "Auto", "Interactive", or "Solo"
+        difficulty = None  # Difficulty selected by player. Either "Easy", "Medium", or "Hard"
+        
         # Title screen loop
         while not self.minesweeper and not self.quit:
             screen.fill(BACKGROUND)
@@ -147,6 +179,50 @@ class Game:
             mines_text = font.render("Enter Mine Count (10-20): ", True, GENERAL_TEXT)
             mines_text_rect = mines_text.get_rect(center=(x_center, mine_text_margin))
             screen.blit(mines_text, mines_text_rect)
+
+            # Create buttons for each mode
+            # Define colors
+            button_color = (170, 147, 204)
+            button_hover_color = (131, 106, 168)
+            text_color = (255, 255, 255)
+
+            # The row of buttons should be underneath the rest of the text
+            row_of_modes_y = hint_margin + h*0.1 
+
+            # Create buttons for each mode
+            def drawModeButtons(selected_mode = None):
+                current_button_color = button_color
+                if selected_mode == "Auto":
+                    # Color it with the hover color because it is selected
+                    current_button_color = button_hover_color
+                auto_button = Button(0, row_of_modes_y, int(w//3), 50, "Auto", current_button_color, button_hover_color, text_color)
+                # Reset to original color
+                current_button_color = button_color
+
+                if selected_mode == "Interactive":
+                    # Color it with the hover color because it is selected
+                    current_button_color = button_hover_color
+                interactive_button = Button(int(w//3), row_of_modes_y, int(w//3), 50, "Interactive", current_button_color, button_hover_color, text_color)
+                # Reset to original color
+                current_button_color = button_color
+
+                if selected_mode == "Solo":
+                    # Color it with the hover color because it is selected
+                    current_button_color = button_hover_color
+                solo_button = Button(2 * int(w//3), row_of_modes_y, int(w//3), 50, "Solo", current_button_color, button_hover_color, text_color)
+
+                auto_button.draw(screen) # Draw the button
+                interactive_button.draw(screen) # Draw the button
+                solo_button.draw(screen) # Draw the button
+
+                # Return callbacks to the buttons so their events can be handled
+                return auto_button, interactive_button, solo_button 
+            
+            # Make sure the buttons are defined here, not just drawn, so events can be handled.
+            auto_button, interactive_button, solo_button = drawModeButtons(mode)
+
+            # Create buttons for each difficulty
+            
 
             # Updates mine and render mine-count input field
             events = pg.event.get()
@@ -175,6 +251,18 @@ class Game:
                     if (mines_input.value and 10 <= int(mines_input.value) <= 20):
                         num_mines = int(mines_input.value)
                         self.start_game(BOARD_WIDTH, BOARD_HEIGHT, num_mines)
+                elif auto_button.handle_event(event):
+                    mode = "Auto"
+                    print("Auto was selected")
+                    drawModeButtons("Auto")
+                elif interactive_button.handle_event(event):
+                    mode = "Interactive"
+                    print("Interactive was selected")
+                    drawModeButtons("Interactive")
+                elif solo_button.handle_event(event):
+                    mode = "Solo"
+                    print("Solo was selected")
+                    drawModeButtons("Solo")
 
             # Custom cursor
             if self.cursor_img is not None:
@@ -213,7 +301,9 @@ class Game:
                         continue  # Clicked margin or outside grid
                     grid_x, grid_y = hit
                     if event.button == 1: # Left click reveal
-                        self.minesweeper.reveal_square(grid_x, grid_y)
+                        cellWasUncovered = self.minesweeper.reveal_square(grid_x, grid_y)
+                        # if cellWasUncovered and interactive: # Only check the mode and make the AI play if a cell was actually uncovered
+                            
                     elif event.button == 3: # Right click flag
                         self.minesweeper.toggle_flag(grid_x, grid_y)
 
