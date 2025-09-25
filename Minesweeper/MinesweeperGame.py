@@ -16,6 +16,7 @@ import os
 import pygame as pg
 import pygame_textinput as textinput
 from MinesweeperBoard import Minesweeper
+from AIPlayer import AIPlayer
 
 # Board layout (fixed 10x10)
 BOARD_WIDTH = 10
@@ -156,7 +157,9 @@ class Game:
                                                     )
         mode = None  # Game mode selected by player. Either "Auto", "Interactive", or "Solo"
         difficulty = None  # Difficulty selected by player. Either "Easy", "Medium", or "Hard"
-        
+        turn = "human"  # Track whose turn it is, either "human" or "AI"
+        AI_DELAY = 1000  # milliseconds delay for AI moves
+
         # Title screen loop
         while not self.minesweeper and not self.quit:
             screen.fill(BACKGROUND)
@@ -322,6 +325,10 @@ class Game:
             pg.display.update()
             clock.tick(60)
 
+        # Before entering gameplay loop, set initial turn and AI move timer for the autosolver mode
+        if mode == "Auto":
+            turn = "AI"  # AI starts first in Auto mode
+            timeAICanMove = pg.time.get_ticks() + AI_DELAY # I put a delay here even though its the first turn so the user has time to see the empty board
         # Gameplay loop
         while not self.quit:
             if not self.minesweeper.is_game_over() and not self.minesweeper.is_game_won():
@@ -333,6 +340,17 @@ class Game:
             grid_height = BOARD_HEIGHT * cell_size
             grid_x0 = (w - grid_width) // 2
             grid_y0 = (h - grid_height) // 2
+            
+            # Let the AI make a move if it is its turn and a sufficient delay has passed
+            if turn == "AI" and timeAICanMove and pg.time.get_ticks() >= timeAICanMove:
+                # We have to create a new AI player each time because the MinesweeperBoard keeps changing.
+                ai_player = AIPlayer(self.minesweeper, difficulty)
+                ai_player.make_move()
+                if mode == "Interactive":
+                    turn = "human"  # Switch back to human after AI move
+                # If in Auto mode, the AI continues to play without switching turns but we want to make sure there is time between each move
+                if mode == "Auto":
+                    timeAICanMove = pg.time.get_ticks() + AI_DELAY  # Set next time AI can move
 
             # Handle events
             for event in pg.event.get():
@@ -346,16 +364,22 @@ class Game:
                     if (new_w, new_h) != (cur_w, cur_h):
                         screen = pg.display.set_mode((new_w, new_h), pg.RESIZABLE)
                 elif event.type == pg.MOUSEBUTTONDOWN and self.minesweeper: # Click
-                    hit = self.mouse_to_grid(*event.pos, grid_x0, grid_y0, cell_size, BOARD_WIDTH, BOARD_HEIGHT)
-                    if hit is None:
-                        continue  # Clicked margin or outside grid
-                    grid_x, grid_y = hit
-                    if event.button == 1: # Left click reveal
-                        cellWasUncovered = self.minesweeper.reveal_square(grid_x, grid_y)
-                        # if cellWasUncovered and interactive: # Only check the mode and make the AI play if a cell was actually uncovered
-                            
-                    elif event.button == 3: # Right click flag
-                        self.minesweeper.toggle_flag(grid_x, grid_y)
+                    # Only let the person click on the cell if it is their turn.
+                    if turn == "human":
+                        hit = self.mouse_to_grid(*event.pos, grid_x0, grid_y0, cell_size, BOARD_WIDTH, BOARD_HEIGHT)
+                        if hit is None:
+                            continue  # Clicked margin or outside grid
+                        grid_x, grid_y = hit
+                        if event.button == 1: # Left click reveal
+                            cellWasUncovered = self.minesweeper.reveal_square(grid_x, grid_y)
+                            # Only check the mode and make the AI play if a cell was actually uncovered
+                            if cellWasUncovered and mode == "Interactive": 
+                                turn = "AI"
+                                timeAICanMove = pg.time.get_ticks() + AI_DELAY
+                                
+                                
+                        elif event.button == 3: # Right click flag
+                            self.minesweeper.toggle_flag(grid_x, grid_y)
 
             # Update timer
             if self.start_ticks is not None:
