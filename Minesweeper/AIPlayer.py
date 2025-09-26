@@ -51,34 +51,47 @@ class AIPlayer:
 
         # Pattern 1, check by row from left wall. 
         col = 0
-        for row in range(self.board.width):
+        for row in range(self.board.height):
             if (currentBoardState[row][col] == 1) and (currentBoardState[row][col+1] == 1):
-                if ((row + 1 < self.board.height) and currentBoardState[row+1][col+2] == "?"):
-                    self.board.reveal_square(col + 2, row + 1)
+                if ((row+1 < self.board.height) and currentBoardState[row+1][col+2] == "?"):
+                    self.board.reveal_square(col + 2, row+1)
                     return
-                elif ((row - 1 >= 0) and currentBoardState[row-1][col+2] == "?"):
-                    self.board.reveal_square(col + 2, row - 1)
+                elif ((row-1 >= 0) and currentBoardState[row-1][col+2] == "?"):
+                    self.board.reveal_square(col + 2, row-1)
                     return
            
         # Pattern 1, check by row from right wall. 
         col = self.board.width - 1 # - 1 because the columns are zero indexed. 
-        for row in range(self.board.width):
+        for row in range(self.board.height):
             if (currentBoardState[row][col] == 1) and (currentBoardState[row][col-1] == 1):
-                if ((row + 1 < self.board.height) and currentBoardState[row+1][col-2] == "?"):
-                    self.board.reveal_square(col-2, row + 1)
+                if ((row+1 < self.board.height) and currentBoardState[row+1][col-2] == "?"):
+                    self.board.reveal_square(col-2, row+1)
                     return
-                elif ((row - 1 >= 0) and currentBoardState[row-1][col-2] == "?"):
-                    self.board.reveal_square(col-2, row + 1)
+                elif ((row-1 >= 0) and currentBoardState[row-1][col-2] == "?"):
+                    self.board.reveal_square(col-2, row-1)
                     return
                 
-        # # Pattern 1, check by column from top wall. 
-        # row = 0 # Lock to the top wall
-        # for col in range(self.board.height - 1):
-        #     if (currentBoardState[row][col] == 1) and (currentBoardState[row+1][col] == 1) and (currentBoardState[row+2][col+1] == "?"):
-        #         self.board.reveal_square(col+1, row+2)
-        #         return
+        # Pattern 1, check by column from top wall. 
+        row = 0 # Lock to the top wall
+        for col in range(self.board.width):
+            if (currentBoardState[row][col] == 1) and (currentBoardState[row+1][col] == 1):
+                if ((col + 1 < self.board.width) and currentBoardState[row+2][col+1] == "?"):
+                    self.board.reveal_square(col+1, row+2)
+                    return
+                elif ((col - 1 < self.board.width) and currentBoardState[row+2][col-1] == "?"):
+                    self.board.reveal_square(col-1, row+2)
+                    return
             
         # Pattern 1, check by column from bottom wall.
+        row = self.board.height - 1 # Lock to the bottom wall
+        for col in range(self.board.width):
+            if (currentBoardState[row][col] == 1) and (currentBoardState[row-1][col] == 1):
+                if ((col+1 < self.board.width) and currentBoardState[row-2][col+1] == "?"):
+                    self.board.reveal_square(col+1, row-2)
+                    return
+                elif ((col-1 < self.board.width) and currentBoardState[row-2][col-1] == "?"):
+                    self.board.reveal_square(col-1, row-2)
+                    return
 
         # Pattern 2, If there is a cell with 3 '1's in around one of its corners, then it must be a mine and shouldd be flagged. 
         # 1 1
@@ -108,6 +121,8 @@ class AIPlayer:
         # | 1 2
         # | ? ? F
         
+        print("No moves. Making random move")
+
     # TODO: Implement actual AI logic for hard mode
     def make_hard_move(self):
         # Implement hard difficulty logic
