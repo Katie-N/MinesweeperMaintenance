@@ -111,7 +111,35 @@ class AIPlayer:
 
         # Pattern 4, if the number of flags surrounding an uncovered cell == the number of that cell, then all unflagged covered cells around that cell can be safely uncovered. 
         # This pattern will fail if the user incorrectly flags a non-mine however this is not a bug but a feature. 
-
+        # Examine each cell in the board
+        # Loop through each row in the board
+        for row in range(self.board.height):
+            # Loop through each column in the board
+            for col in range(self.board.width):
+                # This is the current cell being examined. 
+                cellValue = currentBoardState[row][col]
+                # If the current cell is a non-zero number, check if the surrounding flags add up to the number.
+                if type(cellValue) is int and cellValue > 0:
+                    coveredCells = []
+                    numFlags = 0
+                    # Loop through each cell in the 3x3 grid surrounding the current cell
+                    for i in range(row-1, row+2):
+                        for j in range(col-1, col+2):
+                            # Make sure i and j are within the bounds of the board before trying to access those indices
+                            if i >= 0 and i < self.board.height and j >= 0 and j < self.board.width:
+                                if currentBoardState[i][j] == "F":
+                                    numFlags += 1
+                                elif currentBoardState[i][j] == "?":
+                                    coveredCells.append((i,j))
+                    
+                    # If the number of flags in adjacent cells equals the cell value then we should uncover one of the adjacent covered cells
+                    # (Because all mine cells have been identified with flags.)
+                    if (numFlags == cellValue):
+                        # Just pick the first covered cell in the list to uncover.
+                        for cell in coveredCells:
+                            self.board.reveal_square(cell[1], cell[0])
+                            return
+                    
         # Pattern 5, similar to pattern 1 but for mines. If there is a wall with a 1 then a 2 off the wall, the third cell in the adjacent row/column is a mine and should be flagged.
         # TODO: Either come back to pattern 5 or scrap it but right now it is not functioning properly. It needs a check so that the entire row opposite is clear, not just the opposite cell. 
         # Ex. | F * *
