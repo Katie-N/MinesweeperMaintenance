@@ -93,7 +93,7 @@ class AIPlayer:
                     self.board.reveal_square(col-1, row-2)
                     return
 
-        # Pattern 2, If there is a cell with 3 '1's in around one of its corners, then it must be a mine and shouldd be flagged. 
+        # Pattern 2, If there is a cell with 3 '1's in around one of its corners, then it must be a mine and should be flagged. 
         # 1 1
         # 1 ?
         # Safe Move:
@@ -113,6 +113,12 @@ class AIPlayer:
         # This pattern will fail if the user incorrectly flags a non-mine however this is not a bug but a feature. 
 
         # Pattern 5, similar to pattern 1 but for mines. If there is a wall with a 1 then a 2 off the wall, the third cell in the adjacent row/column is a mine and should be flagged.
+        # TODO: Either come back to pattern 5 or scrap it but right now it is not functioning properly. It needs a check so that the entire row opposite is clear, not just the opposite cell. 
+        # Ex. | F * *
+        #     | 1 2 F
+        #     | ? ? ? <- This cell got flagged
+
+        # Pattern:
         # | * * *
         # | 1 2
         # | ? ? ?
@@ -120,7 +126,26 @@ class AIPlayer:
         # | * * *
         # | 1 2
         # | ? ? F
-        
+        # Pattern 5, check by row from left wall. 
+        # col = 0
+        # for row in range(self.board.height):
+        #     if (currentBoardState[row][col] == 1) and (currentBoardState[row][col+1] == 2):
+        #         # If the lower right cell is covered
+        #         if ((row+1 < self.board.height) and (currentBoardState[row+1][col+2] == "?")):
+        #             # The opposite cell needs to be either non-existent (as in off the board) or uncovered for this pattern to be matched. 
+        #             # If the upper right cell is uncovered or off the board then we can safely flag the lower right cell.
+        #             if ((row-1 < 0) or (currentBoardState[row-1][col+2] != "?")):
+        #                 print("Flagging mine at:", col + 2, row+1)
+        #                 self.board.toggle_flag(col + 2, row+1)
+        #                 return
+        #         # If the upper right cell is covered
+        #         elif ((row-1 >= 0) and currentBoardState[row-1][col+2] == "?"):
+        #             # If the lower right cell is uncovered or off the board then we can safely flag the lower right cell.
+        #             if ((row+1 >= self.board.height) or (currentBoardState[row+1][col+2] != "?")):
+        #                 print("Flagging mine at:", col + 2, row-1)
+        #                 self.board.toggle_flag(col + 2, row-1)
+        #                 return
+                   
         print("No moves. Making random move")
 
     # TODO: Implement actual AI logic for hard mode
