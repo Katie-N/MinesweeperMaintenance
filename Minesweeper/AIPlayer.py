@@ -14,6 +14,43 @@ class AIPlayer:
         elif self.difficulty == "Hard":
             self.make_hard_move()
     
+    def getAdjacentValues(self, row, col):
+        currentBoardState = self.board.get_display_board()
+        try:
+            left = currentBoardState[row][col - 1]
+        except IndexError:
+            left = None
+        try:
+            top = currentBoardState[row-1][col]
+        except IndexError:
+            top = None
+        try:
+            topleft = currentBoardState[row-1][col - 1] if (col - 1 >= 0 and row - 1 >= 0) else None
+        except IndexError:
+            topleft = None
+        try:
+            topright = currentBoardState[row-1][col+1] if (row - 1 >= 0 and col + 1 < self.board.width) else None
+        except IndexError:
+            topright = None
+        try:
+            right = currentBoardState[row][col+1] if (col + 1 < self.board.width) else None
+        except IndexError:
+            right = None
+        try:
+            bottomright = currentBoardState[row+1][col+1] if (row + 1 < self.board.height and col + 1 < self.board.width) else None
+        except IndexError:
+            bottomright = None
+        try:
+            bottom = currentBoardState[row+1][col] if (row + 1 < self.board.height) else None
+        except IndexError:
+            bottom = None
+        try:
+            bottomleft = currentBoardState[row+1][col-1] if (col - 1 >= 0 and row + 1 < self.board.height) else None
+        except IndexError:
+            bottomleft = None
+
+        return left, topleft, top, topright, right, bottomright, bottom, bottomleft
+
     # NOTE: Their logic takes the column first then the row. No idea why since it is usually row then column. Don't get tripped up by this. 
     # To uncover a cell just do self.board.reveal_square(column, row) 
     # To flag a cell just do self.toggle_flag(column, row)
@@ -24,7 +61,8 @@ class AIPlayer:
         print("AI making easy move")
         self.board.reveal_square(0, 0)
 
-    # TODO: Implement actual AI logic for medium mode
+    # This function will make a strategic move based on the same information the player has using various minesweeper strategies
+    # It uses logic by referencing defined patterns it finds on the board and will either flag or uncover a cell each time this function is called. 
     def make_medium_move(self):
         # Implement medium difficulty logic
         print("AI making medium move")
@@ -99,6 +137,30 @@ class AIPlayer:
         # Safe Move:
         # 1 1
         # 1 F
+        for row in range(self.board.height):
+            for col in range(self.board.width):
+                currentCell = currentBoardState[row][col]
+                # For every covered cell, check if it has a corner of 1s
+                if currentCell == "?":
+                    left, topleft, top, topright, right, bottomright, bottom, bottomleft = self.getAdjacentValues(row,col)
+                    
+                    # There are 4 corners to check
+                    # left, top left, top
+                    if left == 1 and topleft == 1 and top == 1 and (self.getAdjacentValues(row-1,col-1).count('?') + self.getAdjacentValues(row-1,col-1).count('F')) == 1:
+                        self.board.toggle_flag(col, row)
+                        return
+                    # top, top right, right
+                    if top == 1 and topright == 1 and right == 1 and (self.getAdjacentValues(row-1,col+1).count('?') + self.getAdjacentValues(row-1,col+1).count('F')) == 1:
+                        self.board.toggle_flag(col, row)
+                        return
+                    # right, bottom right, bottom
+                    if right == 1 and bottomright == 1 and bottom == 1 and (self.getAdjacentValues(row+1,col+1).count('?') + self.getAdjacentValues(row+1,col+1).count('F')) == 1:
+                        self.board.toggle_flag(col, row)
+                        return
+                    # bottom, bottom left, left
+                    if bottom == 1 and bottomleft == 1 and left == 1 and (self.getAdjacentValues(row+1,col-1).count('?') + self.getAdjacentValues(row+1,col-1).count('F'))== 1:
+                        self.board.toggle_flag(col, row)
+                        return
 
         # Pattern 3, similar to pattern 1 but for a mine. If there are 2 consecutive 2's off of a wall with uncovered cells on one side and covered cells on the other side, then the 2 covered cells can be flagged and the third cell can be uncovered.
         # | * *
@@ -174,7 +236,42 @@ class AIPlayer:
         #                 self.board.toggle_flag(col + 2, row-1)
         #                 return
                    
+        # Pattern 6: If the value of an uncovered cell equals the sum of the covered adjacent cells, then they should be flagged.
+        for row in range(self.board.height):
+            for col in range(self.board.width):
+                cellValue = currentBoardState[row][col]
+                # Skip covered cells
+                if cellValue == "?" or cellValue == "F":
+                    continue
+
+                adjCells = self.getAdjacentValues(row, col)
+                print(adjCells)
+                left, topleft, top, topright, right, bottomright, bottom, bottomleft = self.getAdjacentValues(row, col)
+                if adjCells.count("?") + adjCells.count("F") == cellValue:
+                    if left == "?":
+                        self.board.toggle_flag(col-1, row)
+                        return
+                    if topleft == "?":
+                        self.board.toggle_flag(col-1, row-1)
+                        return
+                    if top == "?":
+                        self.board.toggle_flag(col, row-1)
+                        return
+                    if topright == "?":
+                        self.board.toggle_flag(col+1, row-1)
+                        return
+                    if right == "?":
+                        self.board.toggle_flag(col+1, row)
+                        return
+                    if bottomright == "?":
+                        self.board.toggle_flag(col+1, row+1)
+                        return
+                    if bottom == "?":
+                        self.board.toggle_flag(col, row+1)
+                        return
+
         print("No moves. Making random move")
+        self.make_easy_move()
 
     # TODO: Implement actual AI logic for hard mode
     def make_hard_move(self):
