@@ -121,6 +121,10 @@ class Game:
         """Main game loop. Title screen followed by game."""
         screen = pg.display.set_mode((600, 600), pg.RESIZABLE)
         clock = pg.time.Clock()
+        HIGHLIGHT_COLOR = (255, 215, 0)  # Gold for AI highlight
+        highlight_duration = 500  # ms
+        ai_highlight_cell = None
+        ai_highlight_time = None
 
         # Load assets, with defaults if loading fails
         try:
@@ -277,10 +281,9 @@ class Game:
             # Handle key presses and screen resize
             for event in events:
                 if event.type == pg.QUIT:
-                    # Safe exit
                     self.quit = True
                     break
-                elif event.type == pg.VIDEORESIZE: # Resize window
+                elif event.type == pg.VIDEORESIZE:
                     new_w, new_h = self._clamp_size(event.w, event.h)
                     cur_w, cur_h = screen.get_size()
                     if (new_w, new_h) != (cur_w, cur_h):
@@ -343,14 +346,14 @@ class Game:
             
             # Let the AI make a move if it is its turn and a sufficient delay has passed
             if turn == "AI" and timeAICanMove and pg.time.get_ticks() >= timeAICanMove:
-                # We have to create a new AI player each time because the MinesweeperBoard keeps changing.
                 ai_player = AIPlayer(self.minesweeper, difficulty)
-                ai_player.make_move()
-                if mode == "Interactive":
-                    turn = "human"  # Switch back to human after AI move
-                # If in Auto mode, the AI continues to play without switching turns but we want to make sure there is time between each move
-                if mode == "Auto":
-                    timeAICanMove = pg.time.get_ticks() + AI_DELAY  # Set next time AI can move
+                # For demo, AI always picks (0,0). Replace with actual logic for real AI
+                ai_x, ai_y = 0, 0
+                if hasattr(ai_player, 'get_next_move'):
+                    ai_x, ai_y = ai_player.get_next_move()
+                ai_highlight_cell = (ai_x, ai_y)
+                ai_highlight_time = pg.time.get_ticks()
+                timeAICanMove = None
 
             # Handle events
             for event in pg.event.get():
@@ -381,9 +384,21 @@ class Game:
                         elif event.button == 3: # Right click flag
                             self.minesweeper.toggle_flag(grid_x, grid_y)
 
+            # AI highlight logic
+            if ai_highlight_cell and ai_highlight_time:
+                if pg.time.get_ticks() - ai_highlight_time >= highlight_duration:
+                    self.minesweeper.reveal_square(*ai_highlight_cell)
+                    ai_highlight_cell = None
+                    ai_highlight_time = None
+                    if mode == "Interactive":
+                        turn = "human"
+                        timeAICanMove = None
+                    elif mode == "Auto":
+                        turn = "AI"
+                        timeAICanMove = pg.time.get_ticks() + AI_DELAY
             # Update timer
             if self.start_ticks is not None:
-                if self.end_time is not None: # Game over, freeze timer
+                if self.end_time is not None:
                     elapsed_seconds = self.end_time
                 else:
                     elapsed_seconds = (pg.time.get_ticks() - self.start_ticks) // 1000
@@ -396,14 +411,13 @@ class Game:
             for y in range(self.minesweeper.height):
                 for x in range(self.minesweeper.width):
                     value = board[y][x]
-                    # Determine color and icon of squares
                     icon = None
                     if value == -1:
                         color = MINE_RED
                         icon_size = int(cell_size * 0.5)
                         if self.mine_img is not None:
                             icon = pg.transform.smoothscale(self.mine_img, (icon_size, icon_size))
-                        else: ## Default red if can't load mine image
+                        else:
                             icon = pg.Surface((icon_size, icon_size))
                             icon.fill(MINE_RED)
                     elif value == 0:
@@ -411,27 +425,33 @@ class Game:
                         icon = font.render("0", True, WHITE)
                     elif value == "?":
                         color = HIDDEN
-                        icon = None # No icon for hidden squares
+                        icon = None
                     elif value == "F":
                         color = HIDDEN
                         icon_size = int(cell_size * 0.5)
                         if self.flag_img is not None:
                             icon = pg.transform.smoothscale(self.flag_img, (icon_size, icon_size))
-                        else:  # Default black if can't load flag image
+                        else:
                             icon = pg.Surface((icon_size, icon_size))
                             icon.fill(BLACK)
                     else:
                         color = REVEALED_NUMBER
                         icon = font.render(str(value), True, WHITE)
 
-                    # Draw cell rectangle and icon if any
                     cell_rect = pg.Rect(grid_x0 + x * cell_size, grid_y0 + y * cell_size, cell_size, cell_size)
                     pg.draw.rect(screen, color, cell_rect)
-                    pg.draw.rect(screen, GRID_LINE, cell_rect, 1)  # grid line
+                    pg.draw.rect(screen, GRID_LINE, cell_rect, 1)
                     if icon is not None:
                         screen.blit(icon, icon.get_rect(center=cell_rect.center))
+                    # Highlight AI cell
+                    if ai_highlight_cell == (x, y):
+                        pg.draw.rect(screen, HIGHLIGHT_COLOR, cell_rect, 4)
 
             # Draw labels and UI elements
+            # Turn indicator
+            turn_text = font.render(f"Turn: {'AI' if turn == 'AI' else 'Player'}", True, (255, 255, 0) if turn == 'AI' else (0, 255, 0))
+            screen.blit(turn_text, (w//2 - turn_text.get_width()//2, 10))
+
             # Column labels A–J (top)
             for col_index, letter in enumerate("ABCDEFGHIJ"):
                 text_surface = font.render(letter, True, GENERAL_TEXT)
