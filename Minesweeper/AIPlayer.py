@@ -17,11 +17,11 @@ class AIPlayer:
     def getAdjacentValues(self, row, col):
         currentBoardState = self.board.get_display_board()
         try:
-            left = currentBoardState[row][col - 1]
+            left = currentBoardState[row][col - 1] if (col - 1 >= 0) else None
         except IndexError:
             left = None
         try:
-            top = currentBoardState[row-1][col]
+            top = currentBoardState[row-1][col] if (row - 1 >= 0) else None
         except IndexError:
             top = None
         try:
