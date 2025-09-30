@@ -398,8 +398,7 @@ class Game:
             grid_x0 = (w - grid_width) // 2
             grid_y0 = (h - grid_height) // 2
 
-            reset_btn = Button(10, 10, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
-
+            
             # Post-game overlay buttons (positions computed later)
             # We create them each frame so they adapt to resize
             overlay_btn_width = 130
@@ -583,7 +582,10 @@ class Game:
                 screen.blit(overlay, (0, 0))
                 text = font.render("You Win!", True, BLACK)
                 screen.blit(text, text.get_rect(center=(win_width // 2, win_height // 2 - 15)))
-        
+            
+            reset_btn = Button(10, 10, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
+            reset_btn.draw(screen)
+
             # Custom cursor
             if self.cursor_img is not None:
                 mx, my = pg.mouse.get_pos()
