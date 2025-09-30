@@ -82,6 +82,10 @@ class Game:
         self.quit = False
         self.start_ticks = None  # Set when the game actually starts
         self.end_time = None     # Frozen final time
+        self.last_config = None  
+        self.cursor_img = None   
+        self.flag_img = None    
+        self.mine_img = None     
         pg.init()
 
     def start_game(self, width: int, height: int, num_mines: int, mode: str, difficulty: str):
@@ -89,6 +93,23 @@ class Game:
         self.minesweeper = Minesweeper(width, height, num_mines, mode, difficulty)
         self.start_ticks = pg.time.get_ticks()  # milliseconds since pg.init()
         self.end_time = None
+        self.last_config = {           
+        "width": width,
+        "height": height,
+        "num_mines": num_mines,
+        "mode": mode,
+        "difficulty": difficulty
+    }
+    def _reset_with_same_config(self): 
+        """Reset the game with the same configuration as last time. Returns whose turn it is and AI delay"""         
+        cfg = self.last_config
+        if not cfg:
+            return "human", None
+        self.start_game(cfg["width"], cfg["height"], cfg["num_mines"], cfg["mode"], cfg["difficulty"])
+        if cfg["mode"] == "Auto":
+            return "AI", pg.time.get_ticks() + 1000  # match AI delay
+        return "human", None
+
 
     def exit_game(self):
         """Perform any game cleanup here (if needed), then quit()."""
@@ -125,6 +146,13 @@ class Game:
         highlight_duration = 500  # ms
         ai_highlight_cell = None
         ai_highlight_time = None
+        goto_play_again_screen = False
+        play_again_at = None                 
+
+        if self.last_config and self.last_config["mode"] == "Auto":  # If last game was Auto, AI starts first
+            turn = "AI"
+            timeAICanMove = pg.time.get_ticks() + AI_DELAY
+
 
         # Load assets, with defaults if loading fails
         try:
@@ -266,6 +294,8 @@ class Game:
                 easy_button, medium_button, hard_button = drawDifficultyButtons(difficulty)
             else:
                 easy_button = medium_button = hard_button = None
+            
+            reset_btn = Button(10, 10, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
 
             # Updates mine and render mine-count input field
             events = pg.event.get()
@@ -295,6 +325,17 @@ class Game:
                         if ((mode == "Interactive" or mode == "Auto") and difficulty in ["Easy", "Medium", "Hard"]) or (mode == "Solo"):
                             num_mines = int(mines_input.value)
                             self.start_game(BOARD_WIDTH, BOARD_HEIGHT, num_mines, mode, difficulty)
+                elif event.type == pg.MOUSEBUTTONDOWN and self.minesweeper:
+                    # If game finished, capture Yes/No before board clicks
+                    if self.minesweeper.is_game_over() or self.minesweeper.is_game_won():  
+                        if yes_btn.handle_event(event):                                      
+                            turn, timeAICanMove = self._reset_with_same_config()        
+                            ai_highlight_cell = None                                     
+                            ai_highlight_time = None                                      
+                            continue                                                       
+                        elif no_btn.handle_event(event):                                      
+                            self.quit = True                                              
+                            break                                                       
                 elif auto_button.handle_event(event):
                     mode = "Auto"
                     print("Auto was selected")
@@ -319,11 +360,18 @@ class Game:
                     difficulty = "Hard"
                     print("Hard was selected")
                     drawModeButtons("Hard")
+                elif reset_btn.handle_event(event):    
+                    if self.last_config:              
+                        turn, timeAICanMove = self._reset_with_same_config()  
+                        ai_highlight_cell = None       
+                        ai_highlight_time = None       
 
             # Custom cursor
             if self.cursor_img is not None:
                 mx, my = pg.mouse.get_pos()
                 screen.blit(self.cursor_img, (mx, my))
+            
+            reset_btn.draw(screen)
 
             pg.display.update()
             clock.tick(60)
@@ -350,7 +398,20 @@ class Game:
             grid_height = BOARD_HEIGHT * cell_size
             grid_x0 = (w - grid_width) // 2
             grid_y0 = (h - grid_height) // 2
-            
+
+            reset_btn = Button(10, 10, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
+
+            # Post-game overlay buttons (positions computed later)
+            # We create them each frame so they adapt to resize
+            overlay_btn_width = 130
+            overlay_btn_height = 44
+            center_x = w // 2
+            center_y = h // 2 + 50
+            yes_btn = Button(center_x - overlay_btn_width - 15, center_y, overlay_btn_width, overlay_btn_height,
+                             "Yes", (60, 130, 80), (90, 170, 120), WHITE)
+            no_btn = Button(center_x + 15, center_y, overlay_btn_width, overlay_btn_height,
+                            "No", (140, 70, 70), (180, 100, 100), WHITE)
+
             # Handle events
             for event in pg.event.get():
                 if event.type == pg.QUIT:
@@ -362,7 +423,21 @@ class Game:
                     cur_w, cur_h = screen.get_size()
                     if (new_w, new_h) != (cur_w, cur_h):
                         screen = pg.display.set_mode((new_w, new_h), pg.RESIZABLE)
+                elif reset_btn.handle_event(event):          
+                    turn, timeAICanMove = self._reset_with_same_config()  
+                    ai_highlight_cell = None                      
+                    ai_highlight_time = None  
                 elif event.type == pg.MOUSEBUTTONDOWN and self.minesweeper: # Click
+                    if self.minesweeper.is_game_over() or self.minesweeper.is_game_won():   
+                        if yes_btn.handle_event(event):                                  
+                            turn, timeAICanMove = self._reset_with_same_config()      
+                            ai_highlight_cell = None                                  
+                            ai_highlight_time = None                                
+                            continue                                                 
+                        elif no_btn.handle_event(event):                               
+                            self.quit = True                                          
+                            break                                                  
+                        continue  # ignore board clicks while overlay is up         
                     # Only let the person click on the cell if it is their turn.
                     if turn == "human":
                         hit = self.mouse_to_grid(*event.pos, grid_x0, grid_y0, cell_size, BOARD_WIDTH, BOARD_HEIGHT)
@@ -484,28 +559,120 @@ class Game:
                 pg.display.set_caption("Minesweeper -- You Lose")
                 if self.end_time is None: # Freeze final time
                     self.end_time = (pg.time.get_ticks() - self.start_ticks) // 1000
+                goto_play_again_screen = True 
+                if play_again_at is None:              
+                    play_again_at = pg.time.get_ticks() + 900  
                 win_width, win_height = screen.get_size()
                 overlay = pg.Surface((win_width, win_height), pg.SRCALPHA) # Create an overlay surface that allows for transparency
-                overlay.fill(TRANSPARENT_RED, (0, win_height // 2 - 30, win_width, 60))
+                overlay.fill(TRANSPARENT_RED, (0, win_height // 2 - 45, win_width, 60))
                 screen.blit(overlay, (0, 0))
                 text = font.render("Game Over", True, BLACK)
-                screen.blit(text, (win_width // 2 - text.get_width() // 2, win_height // 2 - text.get_height() // 2))
+                screen.blit(text, text.get_rect(center=(win_width // 2, win_height // 2 - 15)))
             elif self.minesweeper.is_game_won(): # Win
                 pg.display.set_caption("Minesweeper -- You Win!")
                 if self.end_time is None: # Freeze final time
                     self.end_time = (pg.time.get_ticks() - self.start_ticks) // 1000
+                goto_play_again_screen = True
+                if play_again_at is None:               # NEW
+                    play_again_at = pg.time.get_ticks() + 900  # NEW
                 win_width, win_height = screen.get_size()
                 overlay = pg.Surface((win_width, win_height), pg.SRCALPHA) # Create an overlay surface that allows for transparency
                 overlay.fill(TRANSPARENT_GREEN, (0, win_height // 2 - 30, win_width, 60))
                 screen.blit(overlay, (0, 0))
                 text = font.render("You Win!", True, BLACK)
-                screen.blit(text, (win_width // 2 - text.get_width() // 2, win_height // 2 - text.get_height() // 2))
-
+                screen.blit(text, text.get_rect(center=(win_width // 2, win_height // 2 - 15)))
+        
             # Custom cursor
             if self.cursor_img is not None:
                 mx, my = pg.mouse.get_pos()
                 screen.blit(self.cursor_img, (mx, my))
 
             pg.display.flip()
+            if goto_play_again_screen and not self.quit:
+                if play_again_at is not None and pg.time.get_ticks() < play_again_at:
+                    clock.tick(60)
+                    # (The overlay is already drawn this frame; just wait another frame.)
+                    continue
+                choice = None
+                while choice is None and not self.quit:
+                    w, h = screen.get_size()
+                    screen.fill(BACKGROUND)
+
+                    # Title
+                    try:
+                        # reuse loaded fonts if available in scope
+                        pass
+                    except:
+                        pass
+                    title_surf = title_font.render("Play Again?", True, TITLE_TEXT)
+
+                    # Center positions
+                    title_rect = title_surf.get_rect(center=(w // 2, h // 2 - 60))
+
+                    # Soft band behind text
+                    band = pg.Surface((int(w * 0.8), 120), pg.SRCALPHA)
+                    band.fill((0, 0, 0, 90))
+                    screen.blit(band, (w // 2 - band.get_width() // 2, h // 2 - 100))
+
+                    screen.blit(title_surf, title_rect)
+
+                    # Buttons (reuse Button class; no font_size kw)
+                    btn_w, btn_h = 160, 56
+                    gap = 24
+                    left_x = (w - (btn_w * 2 + gap)) // 2
+                    btn_y = h // 2 + 10
+
+                    yes_btn = Button(left_x, btn_y, btn_w, btn_h, "YES", (60, 130, 80), (90, 170, 120), WHITE)
+                    no_btn  = Button(left_x + btn_w + gap, btn_y, btn_w, btn_h, "NO", (140, 70, 70), (180, 100, 100), WHITE)
+
+                    # subtle plate behind buttons
+                    strip = pg.Surface((btn_w * 2 + gap + 20, btn_h + 20), pg.SRCALPHA)
+                    strip.fill((0, 0, 0, 70))
+                    screen.blit(strip, (left_x - 10, btn_y - 10))
+
+                    yes_btn.draw(screen)
+                    no_btn.draw(screen)
+
+                    for event in pg.event.get():
+                        if event.type == pg.QUIT:
+                            self.quit = True
+                            break
+                        elif event.type == pg.VIDEORESIZE:
+                            new_w, new_h = self._clamp_size(event.w, event.h)
+                            cur_w, cur_h = screen.get_size()
+                            if (new_w, new_h) != (cur_w, cur_h):
+                                screen = pg.display.set_mode((new_w, new_h), pg.RESIZABLE)
+                        elif event.type == pg.KEYDOWN:
+                            if event.key in (pg.K_y, pg.K_RETURN):
+                                choice = "yes"
+                            elif event.key in (pg.K_n, pg.K_ESCAPE):
+                                choice = "no"
+                        elif yes_btn.handle_event(event):
+                            choice = "yes"
+                        elif no_btn.handle_event(event):
+                            choice = "no"
+
+                    if self.cursor_img is not None:
+                        mx, my = pg.mouse.get_pos()
+                        screen.blit(self.cursor_img, (mx, my))
+
+
+                    pg.display.flip()
+                    clock.tick(60)
+
+                # Apply choice
+                if not self.quit:
+                    if choice == "yes":
+                        turn, timeAICanMove = self._reset_with_same_config()
+                        ai_highlight_cell = None
+                        ai_highlight_time = None
+                        goto_play_again_screen = False  # back to gameplay with fresh board
+                        play_again_at = None
+                        continue  # restart gameplay loop 
+                    else:
+                        self.quit = True
+                        play_again_at = None 
+                        break  # exit  loop
+
             clock.tick(60)
         self.exit_game()
