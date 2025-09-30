@@ -80,12 +80,19 @@ class AIPlayer:
                     neighbors.append(((neigborRow, neighborCol), currentBoardState[neigborRow][neighborCol]))
         return neighbors
     
-    # TODO: Implement actual AI logic for easy mode
+    # This function will make a random move on the board
     def make_easy_move(self):
-        # Make random move
         print("AI making easy move")
-        self.board.reveal_square(0, 0)
-        return 0, 0
+
+        # Randomly selects a cell to uncover
+        (x, y) = (random.randint(0, self.board.width - 1), random.randint(0, self.board.height - 1))
+        # Keeps picking random cells until an unrevealed cell is found
+        while self.board.get_display_board()[y][x] != "?" and self.board.get_display_board()[y][x] != "F":
+            (x, y) = (random.randint(0, self.board.width - 1), random.randint(0, self.board.height - 1))
+
+        # Uncovers the selected cell
+        self.board.reveal_square(x, y)
+        return x, y
 
     # This function will make a strategic move based on the same information the player has using various minesweeper strategies
     # It uses logic by referencing defined patterns it finds on the board and will either flag or uncover a cell each time this function is called. 
