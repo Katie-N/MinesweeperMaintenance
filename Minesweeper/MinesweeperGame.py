@@ -295,7 +295,7 @@ class Game:
             else:
                 easy_button = medium_button = hard_button = None
             
-            reset_btn = Button(10, 10, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
+            # reset_btn = Button(10, 10, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
 
             # Updates mine and render mine-count input field
             events = pg.event.get()
@@ -360,18 +360,18 @@ class Game:
                     difficulty = "Hard"
                     print("Hard was selected")
                     drawModeButtons("Hard")
-                elif reset_btn.handle_event(event):    
-                    if self.last_config:              
-                        turn, timeAICanMove = self._reset_with_same_config()  
-                        ai_highlight_cell = None       
-                        ai_highlight_time = None       
+                # elif reset_btn.handle_event(event):    
+                #     if self.last_config:              
+                #         turn, timeAICanMove = self._reset_with_same_config()  
+                #         ai_highlight_cell = None       
+                #         ai_highlight_time = None       
 
             # Custom cursor
             if self.cursor_img is not None:
                 mx, my = pg.mouse.get_pos()
                 screen.blit(self.cursor_img, (mx, my))
             
-            reset_btn.draw(screen)
+            # reset_btn.draw(screen)
 
             pg.display.update()
             clock.tick(60)
@@ -399,8 +399,7 @@ class Game:
             grid_x0 = (w - grid_width) // 2
             grid_y0 = (h - grid_height) // 2
 
-            reset_btn = Button(10, 10, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
-
+            
             # Post-game overlay buttons (positions computed later)
             # We create them each frame so they adapt to resize
             overlay_btn_width = 130
@@ -581,7 +580,10 @@ class Game:
                 screen.blit(overlay, (0, 0))
                 text = font.render("You Win!", True, BLACK)
                 screen.blit(text, text.get_rect(center=(win_width // 2, win_height // 2 - 15)))
-        
+            
+            reset_btn = Button(10, 10, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
+            reset_btn.draw(screen)
+
             # Custom cursor
             if self.cursor_img is not None:
                 mx, my = pg.mouse.get_pos()
