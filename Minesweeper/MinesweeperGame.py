@@ -336,6 +336,13 @@ class Game:
         while not self.quit:
             if not self.minesweeper.is_game_over() and not self.minesweeper.is_game_won():
                 pg.display.set_caption("Minesweeper -- Playing")
+                # Let the AI make a move if it is its turn and a sufficient delay has passed
+                if turn == "AI" and timeAICanMove and pg.time.get_ticks() >= timeAICanMove:
+                    ai_player = AIPlayer(self.minesweeper, difficulty)
+                    ai_x, ai_y = ai_player.make_move()
+                    ai_highlight_cell = (ai_x, ai_y)
+                    ai_highlight_time = pg.time.get_ticks()
+                    timeAICanMove = None
             w, h = screen.get_size()
             grid_size = min(w, h) * 0.8
             cell_size = int(grid_size // BOARD_WIDTH)
@@ -344,14 +351,6 @@ class Game:
             grid_x0 = (w - grid_width) // 2
             grid_y0 = (h - grid_height) // 2
             
-            # Let the AI make a move if it is its turn and a sufficient delay has passed
-            if turn == "AI" and timeAICanMove and pg.time.get_ticks() >= timeAICanMove:
-                ai_player = AIPlayer(self.minesweeper, difficulty)
-                ai_x, ai_y = ai_player.make_move()
-                ai_highlight_cell = (ai_x, ai_y)
-                ai_highlight_time = pg.time.get_ticks()
-                timeAICanMove = None
-
             # Handle events
             for event in pg.event.get():
                 if event.type == pg.QUIT:

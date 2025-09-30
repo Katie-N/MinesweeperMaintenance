@@ -322,7 +322,7 @@ class AIPlayer:
                 # print(f"Remembered safe move at ({x}, {y})")
                 #click it
                 self.board.reveal_square(x, y)
-                return
+                return x, y
             
         #if there are cells it remembers have to be mines, flag them
         while self.mineFlags:
@@ -330,7 +330,7 @@ class AIPlayer:
             if currentBoardState[y][x] == "?":
                 # print(f"Remembered mine flagged at ({x}, {y})")
                 self.board.toggle_flag(x, y)
-                return
+                return x,y
         
         newSafeMoves = []
         newMineFlags = []
@@ -370,7 +370,7 @@ class AIPlayer:
             if currentBoardState[y][x] == "?":
                 # print(f"Playing a save move at ({x}, {y})")
                 self.board.reveal_square(x, y)
-                return
+                return x, y
             
         if newMineFlags:
             x, y = newMineFlags.pop()
@@ -379,7 +379,7 @@ class AIPlayer:
             if currentBoardState[y][x] == "?":
                 # print(f"Flagging a known mine at ({x}, {y})")
                 self.board.toggle_flag(x, y)
-                return
+                return x,y
 
         #if there truly is nothing it can deduce, then it'll look at the uncovered cells (within heigth and width range)
         choices = [(x, y) for y in range(self.board.height) for x in range(self.board.width) if currentBoardState[y][x]== "?"]
@@ -389,3 +389,4 @@ class AIPlayer:
             x, y = random.choice(choices)
             # print(f"No moves to deduce. Uncovering ({x}, {y})")
             self.board.reveal_square(x, y)
+            return x,y
