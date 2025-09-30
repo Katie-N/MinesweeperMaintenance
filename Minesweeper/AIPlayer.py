@@ -99,6 +99,102 @@ class AIPlayer:
     def make_medium_move(self):
         # Implement medium difficulty logic
         print("AI making medium move")
+        
+        #the ""ai"" ain't actually cheating so it just has the display board too
+        currentBoardState = self.board.get_display_board()
+
+        #it'll remember things though
+        #init arrays if they don't exist yet
+        #can i just put this in when initting the class? yes but i just wanted it to be created only when hard mode is called
+        if not hasattr(self, "safeMoves"):
+            self.safeMoves = []
+        if not hasattr(self, "mineFlags"):
+            self.mineFlags = []
+
+        #if there are safe cells it 'remembers', click those first
+        while self.safeMoves:
+            #since its col, row not row, col
+            x, y = self.safeMoves.pop()
+            #if its an unrevealed cell
+            if currentBoardState[y][x] == "?":
+                # print(f"Remembered safe move at ({x}, {y})")
+                #click it
+                self.board.reveal_square(x, y)
+                return x, y
+            
+        #if there are cells it remembers have to be mines, flag them
+        while self.mineFlags:
+            x, y, = self.mineFlags.pop()
+            if currentBoardState[y][x] == "?":
+                # print(f"Remembered mine flagged at ({x}, {y})")
+                self.board.toggle_flag(x, y)
+                return x,y
+        
+        newSafeMoves = []
+        newMineFlags = []
+        #goes through board and figures out if there are cells it should remember
+        for x in range(self.board.height):
+            for y in range(self.board.width):
+                #gets the value of the cell its looking at
+                value = currentBoardState[x][y]
+                #if the cell is covered or flagged (aka not an int) skip it, since we can't figure out info from whatever number is hidden
+                if not isinstance(value, int):
+                    continue
+                #how many mines are around the current cell
+                adjacentMinesNum = value
+                #get the neighbors
+                neighbors = self.getAdjacentCells(x, y)
+                coveredNeighbors = [(col, row) for (row, col), v in neighbors if v == "?"]
+                flaggedNeighbors = [(col, row) for (row, col), v in neighbors if v == "F"]
+                #if the adjacentMinesNum == flagged Neighbors, then that means the other adjacent covered cells are all safe
+                #                                               that is if there are covered neighbors
+                if adjacentMinesNum == len(flaggedNeighbors) and coveredNeighbors:
+                    # print(f"For cell ({x}, {y}), the neighbors:\n{coveredNeighbors}\nare safe")
+                    #instead of doing a for loop to append each elem
+                    newSafeMoves.extend(coveredNeighbors)
+                #if the adjacentMinesNum == flaggedNeighbors + coveredNeighbords, then that means all the covered cells are mine
+                if adjacentMinesNum == len(flaggedNeighbors) + len(coveredNeighbors) and coveredNeighbors:
+                    # print(f"For cell ({x}, {y}), the neighbors:\n{coveredNeighbors}\nare mines")
+                    newMineFlags.extend(coveredNeighbors)
+        
+        #Play what it deduced
+        if newSafeMoves:
+            #pick a cell and remove it from the array
+            x, y = newSafeMoves.pop()
+            #add the new  moves to the og arrays
+            #to be used in a later turn
+            self.safeMoves.extend(newSafeMoves)
+            self.mineFlags.extend(newMineFlags)
+            if currentBoardState[y][x] == "?":
+                # print(f"Playing a save move at ({x}, {y})")
+                self.board.reveal_square(x, y)
+                return x, y
+            
+        if newMineFlags:
+            x, y = newMineFlags.pop()
+            self.safeMoves.extend(newSafeMoves)
+            self.mineFlags.extend(newMineFlags)
+            if currentBoardState[y][x] == "?":
+                # print(f"Flagging a known mine at ({x}, {y})")
+                self.board.toggle_flag(x, y)
+                return x,y
+
+        #if there truly is nothing it can deduce, then it'll look at the uncovered cells (within heigth and width range)
+        choices = [(x, y) for y in range(self.board.height) for x in range(self.board.width) if currentBoardState[y][x]== "?"]
+        #if there is a cell it can chooose from that
+        if choices:
+            #reveal a random one
+            x, y = random.choice(choices)
+            # print(f"No moves to deduce. Uncovering ({x}, {y})")
+            self.board.reveal_square(x, y)
+            return x,y
+
+        print("No moves. Making random move")
+        return self.make_easy_move()
+
+    def make_hard_move(self):
+        print("AI making hard move")
+
         # If no safe moves, make random move
         # Otherwise, make a strategic move
         # Since the medium AI should not have any special knowledge we will use the display board instead of the regular board. 
@@ -302,98 +398,5 @@ class AIPlayer:
                     if bottom == "?":
                         self.board.toggle_flag(col, row+1)
                         return col, row + 1
-
-        print("No moves. Making random move")
-        return self.make_easy_move()
-
-    def make_hard_move(self):
-        print("AI making hard move")
-
-        #the ""ai"" ain't actually cheating so it just has the display board too
-        currentBoardState = self.board.get_display_board()
-
-        #it'll remember things though
-        #init arrays if they don't exist yet
-        #can i just put this in when initting the class? yes but i just wanted it to be created only when hard mode is called
-        if not hasattr(self, "safeMoves"):
-            self.safeMoves = []
-        if not hasattr(self, "mineFlags"):
-            self.mineFlags = []
-
-        #if there are safe cells it 'remembers', click those first
-        while self.safeMoves:
-            #since its col, row not row, col
-            x, y = self.safeMoves.pop()
-            #if its an unrevealed cell
-            if currentBoardState[y][x] == "?":
-                # print(f"Remembered safe move at ({x}, {y})")
-                #click it
-                self.board.reveal_square(x, y)
-                return x, y
-            
-        #if there are cells it remembers have to be mines, flag them
-        while self.mineFlags:
-            x, y, = self.mineFlags.pop()
-            if currentBoardState[y][x] == "?":
-                # print(f"Remembered mine flagged at ({x}, {y})")
-                self.board.toggle_flag(x, y)
-                return x,y
-        
-        newSafeMoves = []
-        newMineFlags = []
-        #goes through board and figures out if there are cells it should remember
-        for x in range(self.board.height):
-            for y in range(self.board.width):
-                #gets the value of the cell its looking at
-                value = currentBoardState[x][y]
-                #if the cell is covered or flagged (aka not an int) skip it, since we can't figure out info from whatever number is hidden
-                if not isinstance(value, int):
-                    continue
-                #how many mines are around the current cell
-                adjacentMinesNum = value
-                #get the neighbors
-                neighbors = self.getAdjacentCells(x, y)
-                coveredNeighbors = [(col, row) for (row, col), v in neighbors if v == "?"]
-                flaggedNeighbors = [(col, row) for (row, col), v in neighbors if v == "F"]
-                #if the adjacentMinesNum == flagged Neighbors, then that means the other adjacent covered cells are all safe
-                #                                               that is if there are covered neighbors
-                if adjacentMinesNum == len(flaggedNeighbors) and coveredNeighbors:
-                    # print(f"For cell ({x}, {y}), the neighbors:\n{coveredNeighbors}\nare safe")
-                    #instead of doing a for loop to append each elem
-                    newSafeMoves.extend(coveredNeighbors)
-                #if the adjacentMinesNum == flaggedNeighbors + coveredNeighbords, then that means all the covered cells are mine
-                if adjacentMinesNum == len(flaggedNeighbors) + len(coveredNeighbors) and coveredNeighbors:
-                    # print(f"For cell ({x}, {y}), the neighbors:\n{coveredNeighbors}\nare mines")
-                    newMineFlags.extend(coveredNeighbors)
-        
-        #Play what it deduced
-        if newSafeMoves:
-            #pick a cell and remove it from the array
-            x, y = newSafeMoves.pop()
-            #add the new  moves to the og arrays
-            #to be used in a later turn
-            self.safeMoves.extend(newSafeMoves)
-            self.mineFlags.extend(newMineFlags)
-            if currentBoardState[y][x] == "?":
-                # print(f"Playing a save move at ({x}, {y})")
-                self.board.reveal_square(x, y)
-                return x, y
-            
-        if newMineFlags:
-            x, y = newMineFlags.pop()
-            self.safeMoves.extend(newSafeMoves)
-            self.mineFlags.extend(newMineFlags)
-            if currentBoardState[y][x] == "?":
-                # print(f"Flagging a known mine at ({x}, {y})")
-                self.board.toggle_flag(x, y)
-                return x,y
-
-        #if there truly is nothing it can deduce, then it'll look at the uncovered cells (within heigth and width range)
-        choices = [(x, y) for y in range(self.board.height) for x in range(self.board.width) if currentBoardState[y][x]== "?"]
-        #if there is a cell it can chooose from that
-        if choices:
-            #reveal a random one
-            x, y = random.choice(choices)
-            # print(f"No moves to deduce. Uncovering ({x}, {y})")
-            self.board.reveal_square(x, y)
-            return x,y
+                    
+        return self.make_medium_move()
