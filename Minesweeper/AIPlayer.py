@@ -6,13 +6,16 @@ class AIPlayer:
         self.board = board
         self.difficulty = difficulty
     
+    # This function will make a move based on the selected difficulty level
+    # It returns the (col, row) of the move made. 
+    # This means its important that every move function returns those values.
     def make_move(self):
         if self.difficulty == "Easy":
-            self.make_easy_move()
+            return self.make_easy_move()
         elif self.difficulty == "Medium":
-            self.make_medium_move()
+            return self.make_medium_move()
         elif self.difficulty == "Hard":
-            self.make_hard_move()
+            return self.make_hard_move()
     
     def getAdjacentValues(self, row, col):
         currentBoardState = self.board.get_display_board()
@@ -60,6 +63,7 @@ class AIPlayer:
         # Make random move
         print("AI making easy move")
         self.board.reveal_square(0, 0)
+        return 0, 0
 
     # This function will make a strategic move based on the same information the player has using various minesweeper strategies
     # It uses logic by referencing defined patterns it finds on the board and will either flag or uncover a cell each time this function is called. 
@@ -93,10 +97,10 @@ class AIPlayer:
             if (currentBoardState[row][col] == 1) and (currentBoardState[row][col+1] == 1):
                 if ((row+1 < self.board.height) and currentBoardState[row+1][col+2] == "?"):
                     self.board.reveal_square(col + 2, row+1)
-                    return
+                    return col + 2, row+1
                 elif ((row-1 >= 0) and currentBoardState[row-1][col+2] == "?"):
                     self.board.reveal_square(col + 2, row-1)
-                    return
+                    return col + 2, row-1
            
         # Pattern 1, check by row from right wall. 
         col = self.board.width - 1 # - 1 because the columns are zero indexed. 
@@ -104,10 +108,10 @@ class AIPlayer:
             if (currentBoardState[row][col] == 1) and (currentBoardState[row][col-1] == 1):
                 if ((row+1 < self.board.height) and currentBoardState[row+1][col-2] == "?"):
                     self.board.reveal_square(col-2, row+1)
-                    return
+                    return col-2, row+1
                 elif ((row-1 >= 0) and currentBoardState[row-1][col-2] == "?"):
                     self.board.reveal_square(col-2, row-1)
-                    return
+                    return col-2, row-1
                 
         # Pattern 1, check by column from top wall. 
         row = 0 # Lock to the top wall
@@ -115,10 +119,10 @@ class AIPlayer:
             if (currentBoardState[row][col] == 1) and (currentBoardState[row+1][col] == 1):
                 if ((col + 1 < self.board.width) and currentBoardState[row+2][col+1] == "?"):
                     self.board.reveal_square(col+1, row+2)
-                    return
+                    return col+1, row+2
                 elif ((col - 1 < self.board.width) and currentBoardState[row+2][col-1] == "?"):
                     self.board.reveal_square(col-1, row+2)
-                    return
+                    return col-1, row+2
             
         # Pattern 1, check by column from bottom wall.
         row = self.board.height - 1 # Lock to the bottom wall
@@ -126,10 +130,10 @@ class AIPlayer:
             if (currentBoardState[row][col] == 1) and (currentBoardState[row-1][col] == 1):
                 if ((col+1 < self.board.width) and currentBoardState[row-2][col+1] == "?"):
                     self.board.reveal_square(col+1, row-2)
-                    return
+                    return col+1, row-2
                 elif ((col-1 < self.board.width) and currentBoardState[row-2][col-1] == "?"):
                     self.board.reveal_square(col-1, row-2)
-                    return
+                    return col-1, row-2
 
         # Pattern 2, If there is a cell with 3 '1's in around one of its corners, then it must be a mine and should be flagged. 
         # 1 1
@@ -148,19 +152,19 @@ class AIPlayer:
                     # left, top left, top
                     if left == 1 and topleft == 1 and top == 1 and (self.getAdjacentValues(row-1,col-1).count('?') + self.getAdjacentValues(row-1,col-1).count('F')) == 1:
                         self.board.toggle_flag(col, row)
-                        return
+                        return col, row
                     # top, top right, right
                     if top == 1 and topright == 1 and right == 1 and (self.getAdjacentValues(row-1,col+1).count('?') + self.getAdjacentValues(row-1,col+1).count('F')) == 1:
                         self.board.toggle_flag(col, row)
-                        return
+                        return col, row
                     # right, bottom right, bottom
                     if right == 1 and bottomright == 1 and bottom == 1 and (self.getAdjacentValues(row+1,col+1).count('?') + self.getAdjacentValues(row+1,col+1).count('F')) == 1:
                         self.board.toggle_flag(col, row)
-                        return
+                        return col, row
                     # bottom, bottom left, left
                     if bottom == 1 and bottomleft == 1 and left == 1 and (self.getAdjacentValues(row+1,col-1).count('?') + self.getAdjacentValues(row+1,col-1).count('F'))== 1:
                         self.board.toggle_flag(col, row)
-                        return
+                        return col, row
 
         # Pattern 3, similar to pattern 1 but for a mine. If there are 2 consecutive 2's off of a wall with uncovered cells on one side and covered cells on the other side, then the 2 covered cells can be flagged and the third cell can be uncovered.
         # | * *
@@ -200,7 +204,7 @@ class AIPlayer:
                         # Just pick the first covered cell in the list to uncover.
                         for cell in coveredCells:
                             self.board.reveal_square(cell[1], cell[0])
-                            return
+                            return cell[1], cell[0]
                     
         # Pattern 5, similar to pattern 1 but for mines. If there is a wall with a 1 then a 2 off the wall, the third cell in the adjacent row/column is a mine and should be flagged.
         # TODO: Either come back to pattern 5 or scrap it but right now it is not functioning properly. It needs a check so that the entire row opposite is clear, not just the opposite cell. 
@@ -250,28 +254,28 @@ class AIPlayer:
                 if adjCells.count("?") + adjCells.count("F") == cellValue:
                     if left == "?":
                         self.board.toggle_flag(col-1, row)
-                        return
+                        return col - 1, row
                     if topleft == "?":
                         self.board.toggle_flag(col-1, row-1)
-                        return
+                        return col - 1, row-1
                     if top == "?":
                         self.board.toggle_flag(col, row-1)
-                        return
+                        return col, row-1
                     if topright == "?":
                         self.board.toggle_flag(col+1, row-1)
-                        return
+                        return col + 1, row-1
                     if right == "?":
                         self.board.toggle_flag(col+1, row)
-                        return
+                        return col + 1, row
                     if bottomright == "?":
                         self.board.toggle_flag(col+1, row+1)
-                        return
+                        return col + 1, row+1
                     if bottom == "?":
                         self.board.toggle_flag(col, row+1)
-                        return
+                        return col, row + 1
 
         print("No moves. Making random move")
-        self.make_easy_move()
+        return self.make_easy_move()
 
     # TODO: Implement actual AI logic for hard mode
     def make_hard_move(self):

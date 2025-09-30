@@ -121,7 +121,7 @@ class Game:
         """Main game loop. Title screen followed by game."""
         screen = pg.display.set_mode((600, 600), pg.RESIZABLE)
         clock = pg.time.Clock()
-        HIGHLIGHT_COLOR = (255, 215, 0)  # Gold for AI highlight
+        HIGHLIGHT_COLOR = (0, 0, 0)  # Gold for AI highlight
         highlight_duration = 500  # ms
         ai_highlight_cell = None
         ai_highlight_time = None
@@ -347,10 +347,7 @@ class Game:
             # Let the AI make a move if it is its turn and a sufficient delay has passed
             if turn == "AI" and timeAICanMove and pg.time.get_ticks() >= timeAICanMove:
                 ai_player = AIPlayer(self.minesweeper, difficulty)
-                # For demo, AI always picks (0,0). Replace with actual logic for real AI
-                ai_x, ai_y = 0, 0
-                if hasattr(ai_player, 'get_next_move'):
-                    ai_x, ai_y = ai_player.get_next_move()
+                ai_x, ai_y = ai_player.make_move()
                 ai_highlight_cell = (ai_x, ai_y)
                 ai_highlight_time = pg.time.get_ticks()
                 timeAICanMove = None
@@ -387,7 +384,7 @@ class Game:
             # AI highlight logic
             if ai_highlight_cell and ai_highlight_time:
                 if pg.time.get_ticks() - ai_highlight_time >= highlight_duration:
-                    self.minesweeper.reveal_square(*ai_highlight_cell)
+                    # self.minesweeper.reveal_square(*ai_highlight_cell)
                     ai_highlight_cell = None
                     ai_highlight_time = None
                     if mode == "Interactive":
