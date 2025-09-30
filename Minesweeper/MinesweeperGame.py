@@ -295,7 +295,6 @@ class Game:
             else:
                 easy_button = medium_button = hard_button = None
             
-            reset_btn = Button(10, 10, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
 
             # Updates mine and render mine-count input field
             events = pg.event.get()
@@ -360,18 +359,18 @@ class Game:
                     difficulty = "Hard"
                     print("Hard was selected")
                     drawModeButtons("Hard")
-                elif reset_btn.handle_event(event):    
-                    if self.last_config:              
-                        turn, timeAICanMove = self._reset_with_same_config()  
-                        ai_highlight_cell = None       
-                        ai_highlight_time = None       
+                # elif reset_btn.handle_event(event):    
+                #     if self.last_config:              
+                #         turn, timeAICanMove = self._reset_with_same_config()  
+                #         ai_highlight_cell = None       
+                #         ai_highlight_time = None       
 
             # Custom cursor
             if self.cursor_img is not None:
                 mx, my = pg.mouse.get_pos()
                 screen.blit(self.cursor_img, (mx, my))
             
-            reset_btn.draw(screen)
+            # reset_btn.draw(screen)
 
             pg.display.update()
             clock.tick(60)
@@ -453,7 +452,10 @@ class Game:
                                 
                                 
                         elif event.button == 3: # Right click flag
-                            self.minesweeper.toggle_flag(grid_x, grid_y)
+                                self.minesweeper.toggle_flag(grid_x, grid_y)
+                                if mode == "Interactive":
+                                    turn = "AI"
+                                    timeAICanMove = pg.time.get_ticks() + AI_DELAY
 
             # AI highlight logic
             if ai_highlight_cell and ai_highlight_time:
@@ -598,38 +600,29 @@ class Game:
                     w, h = screen.get_size()
                     screen.fill(BACKGROUND)
 
-                    # Title
-                    try:
-                        # reuse loaded fonts if available in scope
-                        pass
-                    except:
-                        pass
-                    title_surf = title_font.render("Play Again?", True, TITLE_TEXT)
-
-                    # Center positions
-                    title_rect = title_surf.get_rect(center=(w // 2, h // 2 - 60))
-
-                    # Soft band behind text
-                    band = pg.Surface((int(w * 0.8), 120), pg.SRCALPHA)
-                    band.fill((0, 0, 0, 90))
-                    screen.blit(band, (w // 2 - band.get_width() // 2, h // 2 - 100))
-
-                    screen.blit(title_surf, title_rect)
-
-                    # Buttons (reuse Button class; no font_size kw)
+                    # Button dimensions and gap
                     btn_w, btn_h = 160, 56
                     gap = 24
-                    left_x = (w - (btn_w * 2 + gap)) // 2
-                    btn_y = h // 2 + 10
+                    # Soft band behind text and buttons (combined box)
+                    box_width = max(int(w * 0.5), btn_w * 2 + gap + 40)
+                    box_height = 180
+                    box_x = (w - box_width) // 2
+                    box_y = h // 2 - 100
+                    box = pg.Surface((box_width, box_height), pg.SRCALPHA)
+                    box.fill((0, 0, 0, 90))
+                    screen.blit(box, (box_x, box_y))
 
-                    yes_btn = Button(left_x, btn_y, btn_w, btn_h, "YES", (60, 130, 80), (90, 170, 120), WHITE)
-                    no_btn  = Button(left_x + btn_w + gap, btn_y, btn_w, btn_h, "NO", (140, 70, 70), (180, 100, 100), WHITE)
+                    # Title centered in box
+                    title_surf = title_font.render("Play Again?", True, TITLE_TEXT)
+                    title_rect = title_surf.get_rect(center=(w // 2, box_y + 40))
+                    screen.blit(title_surf, title_rect)
 
-                    # subtle plate behind buttons
-                    strip = pg.Surface((btn_w * 2 + gap + 20, btn_h + 20), pg.SRCALPHA)
-                    strip.fill((0, 0, 0, 70))
-                    screen.blit(strip, (left_x - 10, btn_y - 10))
-
+                    # Buttons centered in box below title
+                    btn_y = box_y + 100
+                    btn_total_width = btn_w * 2 + gap
+                    btn_start_x = (w - btn_total_width) // 2
+                    yes_btn = Button(btn_start_x, btn_y, btn_w, btn_h, "YES", (60, 130, 80), (90, 170, 120), WHITE)
+                    no_btn  = Button(btn_start_x + btn_w + gap, btn_y, btn_w, btn_h, "NO", (140, 70, 70), (180, 100, 100), WHITE)
                     yes_btn.draw(screen)
                     no_btn.draw(screen)
 
