@@ -451,6 +451,8 @@ class Game:
                                 
                                 
                         elif event.button == 3: # Right click flag
+                            # Only toggle flag and change turn if cell is not revealed
+                            if not self.minesweeper.revealed[grid_y][grid_x]:
                                 self.minesweeper.toggle_flag(grid_x, grid_y)
                                 if mode == "Interactive":
                                     turn = "AI"
