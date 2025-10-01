@@ -18,6 +18,12 @@ class AIPlayer:
         elif self.difficulty == "Hard":
             return self.make_hard_move()
     
+
+    # This function takes a cell position and determines what the 8 surrounding cells look like. 
+    # It uses the display board so it only has access to the same information as a player would.
+    # It returns the values of the adjacent cells in the following order:
+        # left, topleft, top, topright, right, bottomright, bottom, bottomleft
+    # If an adjacent cell is out of bounds, it returns None for that cell.
     def getAdjacentValues(self, row, col):
         currentBoardState = self.board.get_display_board()
         try:
@@ -59,9 +65,9 @@ class AIPlayer:
     # To uncover a cell just do self.board.reveal_square(column, row) 
     # To flag a cell just do self.toggle_flag(column, row)
 
-    #only used by hard "ai"
+    #only used by medium "ai"
     #different from getAdjacentValues, it returns the coordinates and its value, not only the values
-    #decided to make it seperate, as to not have to change the medium ai patterns since the return values/structure is different
+    #decided to make it seperate, as to not have to change the hard ai patterns since the return values/structure is different
     def getAdjacentCells(self, row, col):
         neighbors = []
         currentBoardState = self.board.get_display_board()
@@ -197,7 +203,7 @@ class AIPlayer:
 
         # If no safe moves, make random move
         # Otherwise, make a strategic move
-        # Since the medium AI should not have any special knowledge we will use the display board instead of the regular board. 
+        # Since the hard AI should not have any special knowledge we will use the display board instead of the regular board. 
         currentBoardState = self.board.get_display_board()
 
         # Key: 
@@ -290,113 +296,42 @@ class AIPlayer:
                     if bottom == 1 and bottomleft == 1 and left == 1 and (self.getAdjacentValues(row+1,col-1).count('?') + self.getAdjacentValues(row+1,col-1).count('F'))== 1:
                         self.board.toggle_flag(col, row)
                         return col, row
-
-        # Pattern 3, similar to pattern 1 but for a mine. If there are 2 consecutive 2's off of a wall with uncovered cells on one side and covered cells on the other side, then the 2 covered cells can be flagged and the third cell can be uncovered.
-        # | * *
-        # | 2 2
-        # | ? ? *
-        # Safe Move:
-        # | * *
-        # | 2 2
-        # | F F X
-
-        # Pattern 4, if the number of flags surrounding an uncovered cell == the number of that cell, then all unflagged covered cells around that cell can be safely uncovered. 
-        # This pattern will fail if the user incorrectly flags a non-mine however this is not a bug but a feature. 
-        # Examine each cell in the board
-        # Loop through each row in the board
-        for row in range(self.board.height):
-            # Loop through each column in the board
-            for col in range(self.board.width):
-                # This is the current cell being examined. 
-                cellValue = currentBoardState[row][col]
-                # If the current cell is a non-zero number, check if the surrounding flags add up to the number.
-                if type(cellValue) is int and cellValue > 0:
-                    coveredCells = []
-                    numFlags = 0
-                    # Loop through each cell in the 3x3 grid surrounding the current cell
-                    for i in range(row-1, row+2):
-                        for j in range(col-1, col+2):
-                            # Make sure i and j are within the bounds of the board before trying to access those indices
-                            if i >= 0 and i < self.board.height and j >= 0 and j < self.board.width:
-                                if currentBoardState[i][j] == "F":
-                                    numFlags += 1
-                                elif currentBoardState[i][j] == "?":
-                                    coveredCells.append((i,j))
                     
-                    # If the number of flags in adjacent cells equals the cell value then we should uncover one of the adjacent covered cells
-                    # (Because all mine cells have been identified with flags.)
-                    if (numFlags == cellValue):
-                        # Just pick the first covered cell in the list to uncover.
-                        for cell in coveredCells:
-                            self.board.reveal_square(cell[1], cell[0])
-                            return cell[1], cell[0]
-                    
-        # Pattern 5, similar to pattern 1 but for mines. If there is a wall with a 1 then a 2 off the wall, the third cell in the adjacent row/column is a mine and should be flagged.
-        # TODO: Either come back to pattern 5 or scrap it but right now it is not functioning properly. It needs a check so that the entire row opposite is clear, not just the opposite cell. 
-        # Ex. | F * *
-        #     | 1 2 F
-        #     | ? ? ? <- This cell got flagged
-
+        # Pattern 3, if there is a 1-2-1 pattern horizontally or vertically with covered cells on the opposite side of the 2, then the covered cells can be flagged and the middle cell can be uncovered.
         # Pattern:
         # | * * *
-        # | 1 2
+        # | 1 2 1
         # | ? ? ?
         # Safe Move:
         # | * * *
-        # | 1 2
-        # | ? ? F
-        # Pattern 5, check by row from left wall. 
-        # col = 0
-        # for row in range(self.board.height):
-        #     if (currentBoardState[row][col] == 1) and (currentBoardState[row][col+1] == 2):
-        #         # If the lower right cell is covered
-        #         if ((row+1 < self.board.height) and (currentBoardState[row+1][col+2] == "?")):
-        #             # The opposite cell needs to be either non-existent (as in off the board) or uncovered for this pattern to be matched. 
-        #             # If the upper right cell is uncovered or off the board then we can safely flag the lower right cell.
-        #             if ((row-1 < 0) or (currentBoardState[row-1][col+2] != "?")):
-        #                 print("Flagging mine at:", col + 2, row+1)
-        #                 self.board.toggle_flag(col + 2, row+1)
-        #                 return
-        #         # If the upper right cell is covered
-        #         elif ((row-1 >= 0) and currentBoardState[row-1][col+2] == "?"):
-        #             # If the lower right cell is uncovered or off the board then we can safely flag the lower right cell.
-        #             if ((row+1 >= self.board.height) or (currentBoardState[row+1][col+2] != "?")):
-        #                 print("Flagging mine at:", col + 2, row-1)
-        #                 self.board.toggle_flag(col + 2, row-1)
-        #                 return
-                   
-        # Pattern 6: If the value of an uncovered cell equals the sum of the covered adjacent cells, then they should be flagged.
+        # | 1 2 1
+        # | F X F Can do any of these 3 moves. I will choose to just do the uncovering of the middle cell because the medium logic will take care of flagging the left and right cells.
+        # Pattern 5
+        # Loop through each cell in the board
         for row in range(self.board.height):
             for col in range(self.board.width):
-                cellValue = currentBoardState[row][col]
-                # Skip covered cells
-                if cellValue == "?" or cellValue == "F":
-                    continue
+                currentCell = currentBoardState[row][col]
+                if currentCell == 2:
+                    left, topleft, top, topright, right, bottomright, bottom, bottomleft = self.getAdjacentValues(row,col)
+                    if left == 1 and currentCell == 2 and right == 1:
+                        # If the cell below is covered then uncover it. 
+                        if bottom == "?":
+                            # Uncover the middle cell
+                            self.board.reveal_square(col, row+1)
+                            return col, row+1
+                        # If the cell above is covered then uncover it (this pattern works both up and down)
+                        if top == "?":
+                            self.board.reveal_square(col, row-1)
+                            return col, row-1
 
-                adjCells = self.getAdjacentValues(row, col)
-                print(adjCells)
-                left, topleft, top, topright, right, bottomright, bottom, bottomleft = self.getAdjacentValues(row, col)
-                if adjCells.count("?") + adjCells.count("F") == cellValue:
-                    if left == "?":
-                        self.board.toggle_flag(col-1, row)
-                        return col - 1, row
-                    if topleft == "?":
-                        self.board.toggle_flag(col-1, row-1)
-                        return col - 1, row-1
-                    if top == "?":
-                        self.board.toggle_flag(col, row-1)
-                        return col, row-1
-                    if topright == "?":
-                        self.board.toggle_flag(col+1, row-1)
-                        return col + 1, row-1
-                    if right == "?":
-                        self.board.toggle_flag(col+1, row)
-                        return col + 1, row
-                    if bottomright == "?":
-                        self.board.toggle_flag(col+1, row+1)
-                        return col + 1, row+1
-                    if bottom == "?":
-                        self.board.toggle_flag(col, row+1)
-                        return col, row + 1
+                    if top == 1 and currentCell == 2 and bottom == 1:
+                        # If the cell to the left is covered then uncover it. 
+                        if left == "?":
+                            self.board.reveal_square(col-1, row)
+                            return col-1, row
+                        # If the cell to the right is covered then uncover it (this pattern works both left and right)
+                        if right == "?":
+                            self.board.reveal_square(col+1, row)
+                            return col+1, row
                     
         return self.make_medium_move()
