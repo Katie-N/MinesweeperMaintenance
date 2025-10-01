@@ -583,7 +583,9 @@ class Game:
                 text = font.render("You Win!", True, BLACK)
                 screen.blit(text, text.get_rect(center=(win_width // 2, win_height // 2 - 15)))
             
-            reset_btn = Button(10, 10, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
+            reset_btn_x = 10
+            reset_btn_y = h - 46  # 36px height + 10px margin
+            reset_btn = Button(reset_btn_x, reset_btn_y, 110, 36, "Reset", (110, 110, 130), (140, 140, 170), WHITE)
             reset_btn.draw(screen)
 
             # Custom cursor
